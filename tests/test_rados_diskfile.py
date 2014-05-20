@@ -23,8 +23,8 @@ from hashlib import md5
 from swift.common.exceptions import DiskFileQuarantined, \
     DiskFileCollision, DiskFileNotOpen
 
-from swift.obj.rados_diskfile import RadosFileSystem
-from swift.obj.rados_diskfile import METADATA_KEY
+from swift_ceph_backend.rados_diskfile import RadosFileSystem
+from swift_ceph_backend.rados_diskfile import METADATA_KEY
 
 
 class TestRadosDiskFile(unittest.TestCase):
@@ -463,3 +463,7 @@ class TestRadosDiskFile(unittest.TestCase):
             self._assert_if_rados_not_opened()
             self._assert_if_rados_not_closed()
             self.ioctx.remove_object.assert_called_once_with(self._obj_name())
+
+
+if __name__ == '__main__':
+    unittest.main()

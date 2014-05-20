@@ -25,7 +25,7 @@ import cStringIO
 import unittest
 from test.unit.proxy import test_server
 from test.unit.proxy.test_server import teardown
-from swift.obj import rados_server
+from swift_ceph_backend import rados_server
 
 
 class ObjectNotFound(Exception):
