@@ -23,8 +23,12 @@ sys.modules['rados'] = MOCK_RADOS
 
 import cStringIO
 import unittest
-from test.unit.proxy import test_server
-from test.unit.proxy.test_server import teardown
+try:
+    from test.unit.proxy import test_server
+    from test.unit.proxy.test_server import teardown
+except ImportError:
+    import nose.plugins.skip as skip
+    raise skip.SkipTest("Swift test environ not installed")
 from swift_ceph_backend import rados_server
 
 

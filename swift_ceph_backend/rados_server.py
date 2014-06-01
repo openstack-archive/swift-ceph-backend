@@ -27,8 +27,9 @@ from swift.common.bufferedhttp import http_connect
 from swift.common.exceptions import ConnectionTimeout
 
 from swift.common.http import is_success
-from swift.obj.rados_diskfile import RadosFileSystem
 from swift.obj import server
+
+from swift_ceph_backend.rados_diskfile import RadosFileSystem
 
 
 class ObjectController(server.ObjectController):
