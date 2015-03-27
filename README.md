@@ -16,5 +16,6 @@ Installation
 3. Set the user and pool for Ceph in the [DEFAULT] section in the same file:
 
         [DEFAULT]
+        rados_ceph_conf = /etc/ceph/ceph.conf
         rados_user = swift
         rados_pool = swift

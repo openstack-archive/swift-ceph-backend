@@ -53,7 +53,7 @@ class ObjectController(server.ObjectController):
                                              container, obj, **kwargs)
 
     def async_update(self, op, account, container, obj, host, partition,
-                     contdevice, headers_out, objdevice):
+                     contdevice, headers_out, objdevice, policy_idx=0):
         """
         Sends or saves an async update.
 
@@ -67,8 +67,9 @@ class ObjectController(server.ObjectController):
         :param headers_out: dictionary of headers to send in the container
                             request
         :param objdevice: device name that the object is in
+        :param policy_idx: the associated storage policy index
         """
-        headers_out['user-agent'] = 'obj-server %s' % os.getpid()
+        headers_out['user-agent'] = 'object-server %s' % os.getpid()
         full_path = '/%s/%s/%s' % (account, container, obj)
         if all([host, partition, contdevice]):
             try:
