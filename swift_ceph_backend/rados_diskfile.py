@@ -102,7 +102,7 @@ class RadosFileSystem(object):
 
         def write(self, obj, offset, data):
             try:
-                return self._ioctx.write(obj, data, offset)
+                self._ioctx.write(obj, data, offset)
             except self._fs.RADOS.NoSpace:
                 raise DiskFileNoSpace()
             except Exception:
@@ -148,11 +148,7 @@ class DiskFileWriter(object):
 
         :param chunk: the chunk of data to write as a string object
         """
-        written = 0
-        while written != len(chunk):
-            written += self._fs.write(self._name,
-                                      self._write_offset + written,
-                                      chunk[written:])
+        self._fs.write(self._name, self._write_offset, chunk)
         self._write_offset += len(chunk)
         return self._write_offset
 
