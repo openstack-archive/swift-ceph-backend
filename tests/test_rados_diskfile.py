@@ -14,7 +14,7 @@
 # under the License.
 
 import mock
-from mock import call
+from mock import call, patch
 import cPickle as pickle
 import unittest
 from hashlib import md5
@@ -397,23 +397,24 @@ class TestRadosDiskFile(unittest.TestCase):
 
         writes = []
 
-        def ioctx_write(obj, data, offset):
+        def mock_write(self, obj, offset, data):
             writes.append((data, offset))
             return 2
 
-        self.ioctx.write = ioctx_write
-        with self.df.create() as writer:
-            assert(writer.write(fcont) == len(fcont))
+        with patch('swift_ceph_backend.rados_diskfile.'
+                   'RadosFileSystem._radosfs.write', mock_write):
+            with self.df.create() as writer:
+                assert(writer.write(fcont) == len(fcont))
 
-        check_list = [
-            (fcont, 0),
-            (fcont[2:], 2),
-            (fcont[4:], 4),
-            (fcont[6:], 6),
-            (fcont[8:], 8)]
-        assert(writes == check_list)
-        self._assert_if_rados_not_opened()
-        self._assert_if_rados_not_closed()
+            check_list = [
+                (fcont, 0),
+                (fcont[2:], 2),
+                (fcont[4:], 4),
+                (fcont[6:], 6),
+                (fcont[8:], 8)]
+            assert(writes == check_list)
+            self._assert_if_rados_not_opened()
+            self._assert_if_rados_not_closed()
 
     def test_df_writer_put(self):
         meta = {'Content-Length': 0,
