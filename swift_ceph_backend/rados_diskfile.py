@@ -45,7 +45,8 @@ class RadosFileSystem(object):
 
     def _get_rados(self, fs):
         if self._rados is None:
-            self._rados = fs.RADOS.Rados(conffile=fs._conf, rados_id=fs._user)
+            #self._rados = fs.RADOS.Rados(conffile=fs._conf, rados_id=fs._user)
+            self._rados = fs.RADOS.Rados(conffile=fs._conf)
             self._rados.connect()
         return self._rados
 
@@ -100,11 +101,12 @@ class RadosFileSystem(object):
 
         def write(self, obj, offset, data):
             try:
-                return self._ioctx.write(obj, data, offset)
+                self._ioctx.write(obj, data, offset)
             except self._fs.RADOS.NoSpace:
                 raise DiskFileNoSpace()
             except Exception:
                 raise DiskFileError()
+            return len(data)
 
         def read(self, obj, off):
             return self._ioctx.read(obj, offset=off)
@@ -162,6 +164,9 @@ class DiskFileWriter(object):
         """
         metadata['name'] = self._name
         self._fs.put_object(self._name, metadata)
+
+    def commit(self, timestamp):
+        pass
 
 
 class DiskFileReader(object):
