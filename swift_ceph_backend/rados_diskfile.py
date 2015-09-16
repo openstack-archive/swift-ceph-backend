@@ -22,17 +22,17 @@ import time
 
 from swift.common.utils import normalize_timestamp
 from swift.common.exceptions import DiskFileQuarantined, DiskFileNotExist, \
-    DiskFileCollision, DiskFileDeleted, DiskFileNotOpen, DiskFileNoSpace, \
-    DiskFileError
+    DiskFileCollision, DiskFileNotOpen, DiskFileNoSpace, DiskFileError
 from swift.common.swob import multi_range_iterator
 from swift.obj.diskfile import METADATA_KEY
 
 
 class RadosFileSystem(object):
-    def __init__(self, ceph_conf, rados_user, rados_pool, **kwargs):
+    def __init__(self, ceph_conf, rados_user, rados_pool, logger, **kwargs):
         self._conf = ceph_conf
         self._user = rados_user
         self._pool = rados_pool
+        self._logger = logger
 
         self._rados = None
         self._ioctx = None
@@ -47,21 +47,19 @@ class RadosFileSystem(object):
         if self._rados is None:
             self._rados = fs.RADOS.Rados(conffile=fs._conf, rados_id=fs._user)
             self._rados.connect()
-        return self._rados
+            self._ioctx = self._rados.open_ioctx(self._pool)
+        return self._rados, self._ioctx
 
     def _shutdown(self):
         if self._rados:
+            self._ioctx.close()
             self._rados.shutdown()
 
     class _radosfs(object):
         def __init__(self, fs, _get_rados):
-            self._rados = _get_rados(fs)
+            self._rados, self._ioctx = _get_rados(fs)
             self._fs = fs
             self._pool = fs._pool
-            self._ioctx = self._rados.open_ioctx(self._pool)
-
-        def close(self):
-            self._ioctx.close()
 
         def del_object(self, obj):
             try:
@@ -189,7 +187,6 @@ class DiskFileReader(object):
         self._obj_size = obj_size
         self._etag = etag
         self._iter_hook = iter_hook
-        #
         self._iter_etag = None
         self._bytes_read = 0
         self._read_offset = 0
@@ -275,9 +272,8 @@ class DiskFileReader(object):
 
     def close(self):
         """
-        Close the file. Will handle quarantining file if necessary.
+        handle quarantining file if necessary.
         """
-        self._fs.close()
         try:
             if self._started_at_0 and self._read_to_eof:
                 self._handle_close_quarantine()
@@ -312,15 +308,14 @@ class DiskFile(object):
 
         This method must populate the _metadata attribute.
         :raises DiskFileCollision: on name mis-match with metadata
-        :raises DiskFileDeleted: if it does not exist, or a tombstone is
-                                 present
+        :raises DiskFileNotExist: if it does not exist
         :raises DiskFileQuarantined: if while reading metadata of the file
-                                     some data did pass cross checks
+                                     some data did not pass cross checks
         """
         self._fs_inst = self._fs.open()
         self._metadata = self._fs_inst.get_metadata(self._name)
         if self._metadata is None:
-            raise DiskFileDeleted()
+            raise DiskFileNotExist()
         self._verify_data_file()
         self._metadata = self._metadata or {}
         return self
@@ -331,7 +326,7 @@ class DiskFile(object):
         return self
 
     def __exit__(self, t, v, tb):
-        self._fs_inst.close()
+        pass
 
     def _quarantine(self, msg):
         self._fs_inst.quarantine(self._name)
@@ -437,15 +432,11 @@ class DiskFile(object):
         :raises DiskFileNoSpace: if a size is specified and allocation fails
         """
         fs_inst = None
-        try:
-            fs_inst = self._fs.open()
-            if size is not None:
-                fs_inst.create(self._name, size)
+        fs_inst = self._fs.open()
+        if size is not None:
+            fs_inst.create(self._name, size)
 
-            yield DiskFileWriter(fs_inst, self._name)
-        finally:
-            if fs_inst is not None:
-                fs_inst.close()
+        yield DiskFileWriter(fs_inst, self._name)
 
     def write_metadata(self, metadata):
         """
@@ -462,12 +453,8 @@ class DiskFile(object):
         :param timestamp: timestamp to compare with each file
         """
         fs_inst = None
-        try:
-            timestamp = normalize_timestamp(timestamp)
-            fs_inst = self._fs.open()
-            md = fs_inst.get_metadata(self._name)
-            if md and md['X-Timestamp'] < timestamp:
-                fs_inst.del_object(self._name)
-        finally:
-            if fs_inst is not None:
-                fs_inst.close()
+        timestamp = normalize_timestamp(timestamp)
+        fs_inst = self._fs.open()
+        md = fs_inst.get_metadata(self._name)
+        if md and md['X-Timestamp'] < timestamp:
+            fs_inst.del_object(self._name)

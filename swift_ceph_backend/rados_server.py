@@ -39,7 +39,8 @@ class ObjectController(server.ObjectController):
         ceph_conf = conf.get("rados_ceph_conf", None)
         rados_user = conf.get("rados_user", None)
         rados_pool = conf.get("rados_pool", None)
-        self._filesystem = RadosFileSystem(ceph_conf, rados_user, rados_pool)
+        self._filesystem = RadosFileSystem(ceph_conf, rados_user, rados_pool,
+                                           self.logger)
 
     def get_diskfile(self, device, partition, account, container, obj,
                      **kwargs):
