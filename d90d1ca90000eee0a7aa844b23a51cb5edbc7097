@@ -1,0 +1,8 @@
+Verified+2: Jenkins
+Code-Review+2: Christian Schwede <cschwede@redhat.com>
+Workflow+1: Christian Schwede <cschwede@redhat.com>
+Submitted-by: Jenkins
+Submitted-at: Thu, 17 Sep 2015 10:39:52 +0000
+Reviewed-on: https://review.openstack.org/223878
+Project: stackforge/swift-ceph-backend
+Branch: refs/heads/master
